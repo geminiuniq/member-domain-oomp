@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#f4f8ff"/>
+  <rect x="90" y="90" width="1020" height="620" rx="20" fill="#ffffff" stroke="#cfdcf3"/>
+  <text x="140" y="180" font-family="Arial, sans-serif" font-size="46" fill="#233353">Identity Document (Sample)</text>
+  <text x="140" y="250" font-family="Arial, sans-serif" font-size="28" fill="#4d5d7a">Name: James Chan</text>
+  <text x="140" y="300" font-family="Arial, sans-serif" font-size="28" fill="#4d5d7a">Document No: A1234567</text>
+  <text x="140" y="350" font-family="Arial, sans-serif" font-size="28" fill="#4d5d7a">Country: HKG</text>
+  <text x="140" y="400" font-family="Arial, sans-serif" font-size="28" fill="#4d5d7a">Expiry: 2031-10-31</text>
+  <rect x="820" y="220" width="220" height="280" rx="8" fill="#e9f0ff" stroke="#b8c7e8"/>
+  <text x="852" y="370" font-family="Arial, sans-serif" font-size="24" fill="#5a6c8d">PHOTO</text>
+</svg>
