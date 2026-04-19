@@ -2647,9 +2647,14 @@ function bindActions() {
 
   document.querySelectorAll("[data-accounts-manage-account]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      accountsManageEntityId = btn.dataset.entityId || "";
+      const entityId = btn.dataset.entityId || "";
       const accountId = btn.dataset.accountId || "";
-      accountsManageAccountId = accountsManageAccountId === accountId ? "" : accountId;
+      const shouldClose = accountsManageEntityId === entityId && accountsManageAccountId === accountId;
+      clearAccountsDrawerState();
+      if (!shouldClose) {
+        accountsManageEntityId = entityId;
+        accountsManageAccountId = accountId;
+      }
       renderApp();
     });
   });
@@ -2695,6 +2700,7 @@ function bindActions() {
 
   document.querySelectorAll("[data-accounts-pause-all-open]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      clearAccountsDrawerState();
       accountsPauseDrawerEntityId = btn.dataset.entityId || "";
       accountsPauseReason = "";
       accountsResumeSecondApprover = "";
@@ -2719,7 +2725,7 @@ function bindActions() {
   const pauseCancel = document.querySelector("[data-accounts-pause-cancel]");
   if (pauseCancel) {
     pauseCancel.addEventListener("click", () => {
-      accountsPauseDrawerEntityId = "";
+      clearAccountsDrawerState();
       renderApp();
     });
   }
@@ -2732,6 +2738,7 @@ function bindActions() {
 
   document.querySelectorAll("[data-accounts-open-add-fiat]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      clearAccountsDrawerState();
       accountsAddFiatDrawerEntityId = btn.dataset.entityId || "";
       accountsAddFiatStep = 1;
       accountsAddFiatBankId = "";
@@ -2749,7 +2756,7 @@ function bindActions() {
   const addFiatCancel = document.querySelector("[data-accounts-add-fiat-cancel]");
   if (addFiatCancel) {
     addFiatCancel.addEventListener("click", () => {
-      accountsAddFiatDrawerEntityId = "";
+      clearAccountsDrawerState();
       renderApp();
     });
   }
@@ -2768,6 +2775,7 @@ function bindActions() {
 
   document.querySelectorAll("[data-accounts-open-add-bank]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      clearAccountsDrawerState();
       accountsAddBankDrawerEntityId = btn.dataset.entityId || "";
       accountsAddBankName = "";
       accountsAddBankCurrency = "";
@@ -2811,7 +2819,7 @@ function bindActions() {
   const addBankCancel = document.querySelector("[data-accounts-add-bank-cancel]");
   if (addBankCancel) {
     addBankCancel.addEventListener("click", () => {
-      accountsAddBankDrawerEntityId = "";
+      clearAccountsDrawerState();
       renderApp();
     });
   }
@@ -2847,9 +2855,15 @@ function bindActions() {
 
   document.querySelectorAll("[data-accounts-whitelist-open-review]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      accountsWhitelistReviewEntityId = btn.dataset.entityId || "";
-      accountsWhitelistReviewEntryId = btn.dataset.entryId || "";
-      accountsWhitelistReviewComment = "";
+      const entityId = btn.dataset.entityId || "";
+      const entryId = btn.dataset.entryId || "";
+      const shouldClose = accountsWhitelistReviewEntityId === entityId && accountsWhitelistReviewEntryId === entryId;
+      clearAccountsDrawerState();
+      if (!shouldClose) {
+        accountsWhitelistReviewEntityId = entityId;
+        accountsWhitelistReviewEntryId = entryId;
+        accountsWhitelistReviewComment = "";
+      }
       renderApp();
     });
   });
@@ -2870,6 +2884,13 @@ function bindActions() {
   document.querySelectorAll("[data-accounts-whitelist-reject]").forEach((btn) => {
     btn.addEventListener("click", () => {
       reviewWhitelistEntry(btn.dataset.entityId || "", btn.dataset.entryId || "", "拒绝");
+    });
+  });
+
+  document.querySelectorAll("[data-accounts-drawer-close]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      clearAccountsDrawerState();
+      renderApp();
     });
   });
 
@@ -4698,7 +4719,6 @@ function renderMerchantKybTab(merchant) {
   return `
     <section>
       <h4>入驻与 KYB</h4>
-      <p>按牌照为单位分区展示。每个牌照区块包含：入驻配置 / KYB 材料 / 审核决策 / 审核历史。</p>
       <div class="kyb-license-blocks">
         ${merchant.legalEntities
           .map((entity) => {
@@ -4834,7 +4854,10 @@ function renderMerchantComplianceTab(merchant) {
                 <div class="kyb-license-head">
                   <div>
                     <h5>${escapeHtml(entity.licenseName)} · ${renderComplianceStatusDot(profile.complianceStatus)}</h5>
-                    <p>待审核文件：${pendingCount} · 当前风险评级：${escapeHtml(profile.riskRating)}</p>
+                    <p class="inline-meta-tags">
+                      <span class="mini-tag">待审核文件 ${pendingCount}</span>
+                      ${renderRiskRatingTag(profile.riskRating)}
+                    </p>
                   </div>
                   <button class="tab-btn" data-compliance-entity-toggle="${escapeHtml(entity.id)}">${expanded ? "折叠" : "展开"}</button>
                 </div>
@@ -4935,23 +4958,23 @@ function ensureComplianceExpansionState(merchant) {
 function renderComplianceOverviewSubTab(entity) {
   const p = entity.complianceProfile;
   return `
-    <section class="decision-panel">
+    <section class="decision-panel compliance-overview">
       <h6>合规状态</h6>
-      <div class="decision-grid">
+      <div class="decision-grid compact">
         <p>当前状态：${renderComplianceStatusDot(p.complianceStatus)}</p>
         <p>状态原因：${escapeHtml(p.statusReason || "—")}</p>
         <p>最后更新：${formatExactTime(p.statusUpdatedAt)} · ${escapeHtml(p.statusUpdatedBy)}</p>
       </div>
 
       <h6>风险评级</h6>
-      <div class="decision-grid">
-        <p>当前评级：${escapeHtml(p.riskRating)}</p>
+      <div class="decision-grid compact">
+        <p>当前评级：${renderRiskRatingTag(p.riskRating)}</p>
         <p>评级原因：${escapeHtml(p.riskReason || "—")}</p>
         <p>最后更新：${formatExactTime(p.riskUpdatedAt)} · ${escapeHtml(p.riskUpdatedBy)}</p>
       </div>
 
       <h6>复审计划</h6>
-      <div class="decision-grid">
+      <div class="decision-grid compact">
         <p>上次复审：${formatDate(p.lastReviewAt)} · 结论：${escapeHtml(p.lastReviewConclusion)}</p>
         <p>下次复审：${formatDate(p.nextReviewAt)}</p>
       </div>
@@ -4960,7 +4983,7 @@ function renderComplianceOverviewSubTab(entity) {
         p.enableStablecoin
           ? `
         <h6>链上合规（稳定币）</h6>
-        <div class="decision-grid">
+        <div class="decision-grid compact">
           <p>KYT 风险评分：${escapeHtml(String(p.kytScore))} / 100（低风险）</p>
           <p>评分来源：${escapeHtml(p.kytProvider)}</p>
           <p>最后更新：${formatDate(p.kytUpdatedAt)}</p>
@@ -4973,7 +4996,7 @@ function renderComplianceOverviewSubTab(entity) {
         p.hasSarFlag
           ? `
         <h6>⚠ 注意事项</h6>
-        <div class="decision-grid">
+        <div class="decision-grid compact">
           <p>该商户有 SAR 标记记录（仅 MLRO 可见，详情请联系合规负责人）</p>
         </div>
       `
@@ -5162,6 +5185,13 @@ function renderComplianceStatusDot(status) {
   if (status.includes("受限")) return `<span class="status-dot orange">受限</span>`;
   if (status.includes("暂停")) return `<span class="status-dot red">暂停</span>`;
   return `<span class="status-dot green">正常</span>`;
+}
+
+function renderRiskRatingTag(riskRating) {
+  const value = String(riskRating || "").trim();
+  if (value.includes("高")) return `<span class="tag danger">风险评级：高风险</span>`;
+  if (value.includes("中")) return `<span class="tag warning">风险评级：中风险</span>`;
+  return `<span class="tag success">风险评级：低风险</span>`;
 }
 
 function formatExpiryLabel(expiryDate) {
@@ -5999,13 +6029,7 @@ function ensureAccountsExpansionState(merchant) {
       if (!accountsWhitelistFilterByEntity[entity.id]) accountsWhitelistFilterByEntity[entity.id] = { type: "all", status: "all" };
     });
     accountsExpandedForMerchantId = merchant.id;
-    accountsManageEntityId = "";
-    accountsManageAccountId = "";
-    accountsPauseDrawerEntityId = "";
-    accountsAddBankDrawerEntityId = "";
-    accountsAddFiatDrawerEntityId = "";
-    accountsWhitelistReviewEntityId = "";
-    accountsWhitelistReviewEntryId = "";
+    clearAccountsDrawerState();
   }
 }
 
@@ -6064,6 +6088,7 @@ function renderMerchantAccountsTab(merchant) {
           })
           .join("")}
       </section>
+      ${renderAccountsRightDrawer(merchant)}
     </section>
   `;
 }
@@ -6072,83 +6097,85 @@ function renderAccountsAssetsSubTab(entity) {
   const structure = entity.accountStructure;
   const ua = structure.unifiedAccount;
   const paused = ua.status === "已暂停";
-  const managed = accountsManageEntityId === entity.id ? accountsManageAccountId : "";
   return `
     <section class="decision-panel">
-      <div class="decision-grid ${paused ? "accounts-disabled-row" : ""}">
-        <p><strong>UnifiedAccount</strong> ${escapeHtml(ua.id)} ${renderProductStatusPill(paused ? "已暂停" : "生效")}</p>
-        <p>开户时间：${escapeHtml(ua.openedAt)} · 主币种：${escapeHtml(ua.baseCurrency)}</p>
-        <div class="section-actions">
-          <button class="tab-btn" data-accounts-pause-all-open data-entity-id="${escapeHtml(entity.id)}">${
-            paused ? "恢复全部账户" : "暂停全部账户"
-          }</button>
-        </div>
-      </div>
-
-      <div class="materials-group">
-        <h6>AssetAccount ${escapeHtml(structure.assetAccount.id)} ${renderProductStatusPill(paused ? "已暂停" : "生效")}</h6>
-        <p>资产类账户</p>
-      </div>
-
-      <div class="materials-group ${paused ? "accounts-disabled-row" : ""}">
-        <h6>法币账户</h6>
-        <div class="compliance-file-table">
-          <div class="compliance-file-row compliance-file-head"><span>币种</span><span>虚拟账户号 / 地址</span><span>充值/提现</span><span>状态</span><span>操作</span></div>
-          ${structure.fiatAccounts
-            .map(
-              (acc) => `
-            <div class="compliance-file-row">
-              <span>${escapeHtml(acc.currency)}</span>
-              <span>${escapeHtml(acc.virtualAccountNo)}</span>
-              <span>${acc.canDeposit ? "✓" : "✗"} / ${acc.canWithdraw ? "✓" : "✗"}</span>
-              <span>${renderProductStatusPill(acc.status === "正常" ? "生效" : "已暂停")}</span>
-              <button class="tab-btn" ${paused ? "disabled" : ""} data-accounts-manage-account data-entity-id="${escapeHtml(entity.id)}" data-account-id="${escapeHtml(
-                acc.id
-              )}" data-account-type="fiat">${paused ? "查看" : "管理"}</button>
+      <section class="account-hierarchy">
+        <article class="hier-node hier-l1 ${paused ? "accounts-disabled-row" : ""}">
+          <div class="hier-head">
+            <div>
+              <p class="hier-level">L1 · UnifiedAccount</p>
+              <p class="hier-title">${escapeHtml(ua.id)} ${renderProductStatusPill(paused ? "已暂停" : "生效")}</p>
+              <p class="hier-meta">开户时间：${escapeHtml(ua.openedAt)} · 主币种：${escapeHtml(ua.baseCurrency)}</p>
             </div>
-            ${managed === acc.id ? renderFiatAccountManagePanel(entity, acc, paused) : ""}
-          `
-            )
-            .join("")}
-        </div>
-      </div>
-
-      <div class="materials-group ${paused ? "accounts-disabled-row" : ""}">
-        <h6>稳定币账户</h6>
-        <div class="compliance-file-table">
-          <div class="compliance-file-row compliance-file-head"><span>Token</span><span>收款地址（脱敏）</span><span>充值/提现</span><span>状态</span><span>操作</span></div>
-          ${structure.stableAccounts
-            .map(
-              (acc) => `
-            <div class="compliance-file-row">
-              <span>${escapeHtml(acc.token)}</span>
-              <span>${escapeHtml(maskAddress(acc.address))}</span>
-              <span>${acc.canDeposit ? "✓" : "✗"} / ${acc.canWithdraw ? "✓" : "✗"}</span>
-              <span>${renderProductStatusPill(acc.status === "正常" ? "生效" : "已暂停")}</span>
-              <button class="tab-btn" ${paused ? "disabled" : ""} data-accounts-manage-account data-entity-id="${escapeHtml(entity.id)}" data-account-id="${escapeHtml(
-                acc.id
-              )}" data-account-type="stable">${paused ? "查看" : "管理"}</button>
+            <div class="section-actions">
+              <button class="tab-btn" data-accounts-pause-all-open data-entity-id="${escapeHtml(entity.id)}">${
+                paused ? "恢复全部账户" : "暂停全部账户"
+              }</button>
             </div>
-            ${managed === acc.id ? renderStableAccountManagePanel(entity, acc, paused) : ""}
-          `
-            )
-            .join("")}
-        </div>
-        <div class="section-actions">
-          <button class="tab-btn" ${paused ? "disabled" : ""} data-accounts-open-add-fiat data-entity-id="${escapeHtml(entity.id)}">＋ 新增法币账户</button>
-        </div>
-      </div>
+          </div>
+        </article>
 
-      ${
-        accountsPauseDrawerEntityId === entity.id
-          ? renderUnifiedPauseDrawer(entity)
-          : ""
-      }
-      ${
-        accountsAddFiatDrawerEntityId === entity.id
-          ? renderAddFiatDrawer(entity)
-          : ""
-      }
+        <article class="hier-node hier-l2 ${paused ? "accounts-disabled-row" : ""}">
+          <div class="hier-head">
+            <div>
+              <p class="hier-level">L2 · AssetAccount</p>
+              <p class="hier-title">${escapeHtml(structure.assetAccount.id)} ${renderProductStatusPill(paused ? "已暂停" : "生效")}</p>
+              <p class="hier-meta">资产类账户容器（法币/稳定币）</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="hier-node hier-l3 ${paused ? "accounts-disabled-row" : ""}">
+          <div class="materials-group">
+            <h6>L3 · 法币账户</h6>
+            <div class="compliance-file-table">
+              <div class="compliance-file-row compliance-file-head"><span>币种</span><span>虚拟账户号 / 地址</span><span>充值/提现</span><span>状态</span><span>操作</span></div>
+              ${structure.fiatAccounts
+                .map(
+                  (acc) => `
+              <div class="compliance-file-row">
+                <span>${escapeHtml(acc.currency)}</span>
+                <span>${escapeHtml(acc.virtualAccountNo)}</span>
+                <span>${acc.canDeposit ? "✓" : "✗"} / ${acc.canWithdraw ? "✓" : "✗"}</span>
+                <span>${renderProductStatusPill(acc.status === "正常" ? "生效" : "已暂停")}</span>
+                <button class="tab-btn" ${paused ? "disabled" : ""} data-accounts-manage-account data-entity-id="${escapeHtml(entity.id)}" data-account-id="${escapeHtml(
+                  acc.id
+                )}" data-account-type="fiat">${paused ? "查看" : "管理"}</button>
+              </div>
+            `
+                )
+                .join("")}
+            </div>
+            <div class="section-actions">
+              <button class="tab-btn" ${paused ? "disabled" : ""} data-accounts-open-add-fiat data-entity-id="${escapeHtml(entity.id)}">＋ 新增法币账户</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="hier-node hier-l3 ${paused ? "accounts-disabled-row" : ""}">
+          <div class="materials-group">
+            <h6>L3 · 稳定币账户</h6>
+            <div class="compliance-file-table">
+              <div class="compliance-file-row compliance-file-head"><span>Token</span><span>收款地址（脱敏）</span><span>充值/提现</span><span>状态</span><span>操作</span></div>
+              ${structure.stableAccounts
+                .map(
+                  (acc) => `
+              <div class="compliance-file-row">
+                <span>${escapeHtml(acc.token)}</span>
+                <span>${escapeHtml(maskAddress(acc.address))}</span>
+                <span>${acc.canDeposit ? "✓" : "✗"} / ${acc.canWithdraw ? "✓" : "✗"}</span>
+                <span>${renderProductStatusPill(acc.status === "正常" ? "生效" : "已暂停")}</span>
+                <button class="tab-btn" ${paused ? "disabled" : ""} data-accounts-manage-account data-entity-id="${escapeHtml(entity.id)}" data-account-id="${escapeHtml(
+                  acc.id
+                )}" data-account-type="stable">${paused ? "查看" : "管理"}</button>
+              </div>
+            `
+                )
+                .join("")}
+            </div>
+          </div>
+        </article>
+      </section>
     </section>
   `;
 }
@@ -6325,11 +6352,6 @@ function renderAccountsBanksSubTab(entity) {
       <div class="section-actions">
         <button class="tab-btn" data-accounts-open-add-bank data-entity-id="${escapeHtml(entity.id)}">＋ 添加银行账户记录</button>
       </div>
-      ${
-        accountsAddBankDrawerEntityId === entity.id
-          ? renderAddBankDrawer(entity)
-          : ""
-      }
     </section>
   `;
 }
@@ -6380,9 +6402,6 @@ function renderAccountsWhitelistSubTab(entity) {
     const passStatus = filter.status === "all" || x.status === filter.status;
     return passType && passStatus;
   });
-  const reviewEntry = accountsWhitelistReviewEntityId === entity.id
-    ? structure.whitelistEntries.find((x) => x.id === accountsWhitelistReviewEntryId) || null
-    : null;
   return `
     <section class="decision-panel">
       <div class="decision-grid">
@@ -6429,12 +6448,46 @@ function renderAccountsWhitelistSubTab(entity) {
         </div>
       </div>
       <p class="sort-hint">⚠ 白名单由商户在 Merchant Portal 自助添加，Ops 负责审核</p>
-      ${
-        reviewEntry
-          ? renderWhitelistReviewPanel(entity, reviewEntry)
-          : ""
-      }
     </section>
+  `;
+}
+
+function renderAccountsRightDrawer(merchant) {
+  let panel = "";
+
+  if (accountsManageEntityId && accountsManageAccountId) {
+    const entity = merchant.legalEntities.find((x) => x.id === accountsManageEntityId) || null;
+    const found = entity ? findSubAccount(entity, accountsManageAccountId) : null;
+    if (entity && found) {
+      const paused = entity.accountStructure.unifiedAccount.status === "已暂停";
+      panel = found.kind === "fiat" ? renderFiatAccountManagePanel(entity, found.ref, paused) : renderStableAccountManagePanel(entity, found.ref, paused);
+    }
+  } else if (accountsPauseDrawerEntityId) {
+    const entity = merchant.legalEntities.find((x) => x.id === accountsPauseDrawerEntityId) || null;
+    if (entity) panel = renderUnifiedPauseDrawer(entity);
+  } else if (accountsAddFiatDrawerEntityId) {
+    const entity = merchant.legalEntities.find((x) => x.id === accountsAddFiatDrawerEntityId) || null;
+    if (entity) panel = renderAddFiatDrawer(entity);
+  } else if (accountsAddBankDrawerEntityId) {
+    const entity = merchant.legalEntities.find((x) => x.id === accountsAddBankDrawerEntityId) || null;
+    if (entity) panel = renderAddBankDrawer(entity);
+  } else if (accountsWhitelistReviewEntityId && accountsWhitelistReviewEntryId) {
+    const entity = merchant.legalEntities.find((x) => x.id === accountsWhitelistReviewEntityId) || null;
+    const entry = entity ? entity.accountStructure.whitelistEntries.find((x) => x.id === accountsWhitelistReviewEntryId) || null : null;
+    if (entity && entry) panel = renderWhitelistReviewPanel(entity, entry);
+  }
+
+  if (!panel) return "";
+
+  return `
+    <div class="accounts-side-mask" data-accounts-drawer-close></div>
+    <aside class="drawer accounts-side-drawer">
+      <div class="drawer-head">
+        <h3>操作面板</h3>
+        <button class="tab-btn" data-accounts-drawer-close>关闭</button>
+      </div>
+      ${panel}
+    </aside>
   `;
 }
 
@@ -6489,6 +6542,27 @@ function renderWhitelistStatusPill(status) {
 
 function getAccountStructureEntity(entityId) {
   return getEntityById(entityId);
+}
+
+function clearAccountsDrawerState() {
+  accountsManageEntityId = "";
+  accountsManageAccountId = "";
+  accountsPauseDrawerEntityId = "";
+  accountsPauseMode = "pause";
+  accountsPauseReason = "";
+  accountsResumeSecondApprover = "";
+  accountsAddBankDrawerEntityId = "";
+  accountsAddBankName = "";
+  accountsAddBankCurrency = "";
+  accountsAddBankOpenDate = "";
+  accountsAddBankNote = "";
+  accountsAutoCreateFiat = true;
+  accountsAddFiatDrawerEntityId = "";
+  accountsAddFiatStep = 1;
+  accountsAddFiatBankId = "";
+  accountsWhitelistReviewEntityId = "";
+  accountsWhitelistReviewEntryId = "";
+  accountsWhitelistReviewComment = "";
 }
 
 function findSubAccount(entity, accountId) {
@@ -6690,6 +6764,7 @@ function submitAddBankRecord(entityId) {
 function associateBankToFiat(entityId, bankId) {
   const entity = getAccountStructureEntity(entityId);
   if (!entity) return;
+  clearAccountsDrawerState();
   accountsAddFiatDrawerEntityId = entityId;
   accountsAddFiatStep = 2;
   accountsAddFiatBankId = bankId;
@@ -8425,19 +8500,28 @@ function renderDocumentExpiryBoard() {
                         .map(
                           (row) => `
                     <tr class="${row.range === "expired" ? "adminq-expired-row" : ""}">
-                      <td><button class="link-btn" data-docexp-open-merchant="${escapeHtml(row.key)}">${escapeHtml(row.merchant.name)}</button></td>
-                      <td>${escapeHtml(row.fileTypeDisplay)}</td>
-                      <td>${escapeHtml(row.file.expiryDate)}</td>
-                      <td class="${row.daysLeft < 0 ? "adminq-days-negative" : ""}">${row.daysLeft}天</td>
-                      <td>${renderDocExpiryStatusTag(row.range)}</td>
+                      <td>
+                        <div class="table-cell-main">
+                          <button class="link-btn" data-docexp-open-merchant="${escapeHtml(row.key)}">${escapeHtml(row.merchant.name)}</button>
+                        </div>
+                        <div class="table-cell-sub">
+                          <span>${escapeHtml(row.relatedObject)}</span>
+                          <span class="table-sub-sep">·</span>
+                          <span class="mini-tag">${escapeHtml(`${row.entity.licenseName} · ${row.level}`)}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="table-cell-main">${escapeHtml(row.fileTypeDisplay)}</div>
+                        <div class="table-cell-sub">
+                          <span>RM：${escapeHtml(row.merchant.rm || "-")}</span>
+                          <span class="table-sub-sep">·</span>
+                          <span>${renderDocExpiryUrgencyTag(row.range)}</span>
+                        </div>
+                      </td>
+                      <td><div class="table-cell-main">${escapeHtml(row.file.expiryDate)}</div></td>
+                      <td><div class="table-cell-main ${row.daysLeft < 0 ? "adminq-days-negative" : ""}">${row.daysLeft}天</div></td>
+                      <td><div class="table-cell-main">${renderDocExpiryStatusTag(row.range)}</div></td>
                       <td><button class="tab-btn active" data-docexp-open-merchant="${escapeHtml(row.key)}">处理</button></td>
-                    </tr>
-                    <tr class="adminq-subrow">
-                      <td>${escapeHtml(row.relatedObject)}</td>
-                      <td>${escapeHtml(`${row.entity.licenseName} · ${row.level}`)}</td>
-                      <td>${escapeHtml(row.merchant.rm || "-")}</td>
-                      <td>${renderDocExpiryUrgencyTag(row.range)}</td>
-                      <td colspan="2"></td>
                     </tr>
                   `
                         )
@@ -8538,19 +8622,31 @@ function renderAdminAppointmentQueueBoard() {
                         .map(
                           (row) => `
                     <tr>
-                      <td><button class="link-btn" data-open-merchant-members="${escapeHtml(row.key)}">${escapeHtml(row.merchant.name)}</button></td>
-                      <td>${escapeHtml(row.request.nomineeName)}</td>
-                      <td title="${escapeHtml(formatExactTime(row.request.submittedAt))}">${escapeHtml(formatRelativeTime(row.request.submittedAt))}</td>
-                      <td>${escapeHtml(String(row.waitHours))}小时</td>
-                      <td>${escapeHtml(row.status)}</td>
+                      <td>
+                        <div class="table-cell-main">
+                          <button class="link-btn" data-open-merchant-members="${escapeHtml(row.key)}">${escapeHtml(row.merchant.name)}</button>
+                        </div>
+                        <div class="table-cell-sub">
+                          <span>${getAssigneeLabel(row.request.assignee)}</span>
+                          <span class="table-sub-sep">·</span>
+                          <span class="mini-tag">${escapeHtml(row.entity.licenseName)}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="table-cell-main">${escapeHtml(row.request.nomineeName)}</div>
+                        <div class="table-cell-sub">
+                          <span class="mini-tag">${escapeHtml(row.request.nomineeRole || "Admin")}</span>
+                          <span class="table-sub-sep">·</span>
+                          <span>${renderQueueUrgency(row.urgency)}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="table-cell-main" title="${escapeHtml(formatExactTime(row.request.submittedAt))}">${escapeHtml(formatRelativeTime(row.request.submittedAt))}</div>
+                        <div class="table-cell-sub">${escapeHtml(formatDate(row.request.submittedAt))}</div>
+                      </td>
+                      <td><div class="table-cell-main">${escapeHtml(String(row.waitHours))}小时</div></td>
+                      <td><div class="table-cell-main">${renderAppointmentStatusPill(row.status)}</div></td>
                       <td><button class="tab-btn active" data-open-merchant-members="${escapeHtml(row.key)}">处理</button></td>
-                    </tr>
-                    <tr class="adminq-subrow">
-                      <td>${getAssigneeLabel(row.request.assignee)}</td>
-                      <td>${escapeHtml(row.entity.licenseName)}</td>
-                      <td>${escapeHtml(row.request.nomineeRole || "Admin")}</td>
-                      <td>${renderQueueUrgency(row.urgency)}</td>
-                      <td colspan="2"></td>
                     </tr>
                   `
                         )
